@@ -1,6 +1,4 @@
-This development repository contains build metadata necessary to get OpenXT up and 
-running on certain Xeon-centric machines -- including support pacakges for graphics and 
-onboard networking. This will hopefully be merged into OpenXT once it is stable.
+This development repository contains build metadata necessary to get OpenXT up and running on certain Xeon-centric machines -- including support pacakges for graphics and onboard networking. This will hopefully be merged into OpenXT once it is stable.
 
 For information about OpenXT see our website @ http://openxt.org
 For instructions on how to build OpenXT from source see our GitHub wiki @ https://github.com/OpenXT/openxt/wiki/
