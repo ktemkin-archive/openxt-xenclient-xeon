@@ -1,5 +1,6 @@
 PROTO_DEPS += "dri2proto"
-LIB_DEPS += "libdrm expat"
+LIB_DEPS += "libdrm expat libselinux libselinux-native"
+DEPENDS += "libselinux-native"
 
 # most of our targets do not have DRI so will use mesa-xlib
 DEFAULT_PREFERENCE = "-1"
@@ -12,6 +13,7 @@ GALLIUM_DRIVERS = "swrast"
 GALLIUM_DRIVERS_append_x86 = ",nouveau"
 GALLIUM_DRIVERS_append_x86-64 = ",nouveau"
 
+inherit enable-selinux
 
 EXTRA_OECONF = "\
     --disable-xorg          \
@@ -33,6 +35,7 @@ EXTRA_OECONF = "\
     --enable-gles1         \
     --enable-gles2          \
     --enable-egl          \
+    --enable-selinux      \
     --with-egl-platforms=drm      \
     --enable-dri          \
     --with-dri-drivers=${DRI_DRIVERS}   \
