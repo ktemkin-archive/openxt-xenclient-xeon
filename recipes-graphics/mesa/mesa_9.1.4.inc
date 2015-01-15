@@ -1,6 +1,7 @@
 #DEPENDS += "mesa-dri-glsl-native"
 
-SRC_URI = "ftp://ftp.freedesktop.org/pub/mesa/older-versions/9.x/${PV}/MesaLib-${PV}.tar.bz2"
+SRC_URI = "ftp://ftp.freedesktop.org/pub/mesa/older-versions/9.x/${PV}/MesaLib-${PV}.tar.bz2 \
+    file://gallium-rtasm-handle-mmap-failures-appropriately.patch;patch=1"
 S = "${WORKDIR}/Mesa-${PV}"
 
 SRC_URI[md5sum] = "a2c4e25d0e27918bc67f61bae04d0cb8"
