@@ -4,4 +4,4 @@ RDEPENDS += "mesa-dri-driver-nouveau mesa-dri-driver-nouveau-vieux mesa-dri-driv
 #The new plugin seems a bit large to patch-queue. 
 SRC_URI = "git://github.com/ktemkin/surfman.git;branch=opengl;protocol=${OPENXT_GIT_PROTOCOL}"
 
-PV += "0.1"
+PR .= "0.1"

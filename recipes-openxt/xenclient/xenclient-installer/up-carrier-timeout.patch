@@ -1,0 +1,13 @@
+diff --git a/part1/stages/Get-answerfile b/part1/stages/Get-answerfile
+index 45a53b0..a5ff70e 100755
+--- a/part1/stages/Get-answerfile
++++ b/part1/stages/Get-answerfile
+@@ -96,7 +96,7 @@ network_up_for_answerfile()
+                     ifconfig "${DEV}" up
+                 done
+ 
+-                wait_for_carrier $(echo ${NIC_LIST} | cut -f1 -d' ') 10
++                wait_for_carrier $(echo ${NIC_LIST} | cut -f1 -d' ') 30
+ 
+                 for DEV in ${NIC_LIST} ; do
+                     if nic_has_carrier "${DEV}" ; then
