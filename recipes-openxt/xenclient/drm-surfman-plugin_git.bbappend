@@ -1,4 +1,4 @@
-PR .= "0.2"
+PR .= "0.3"
 
 #Also look in the layer when searching for SRC_URI files.
 FILESEXTRAPATHS_prepend := "${THISDIR}/drm-surfman-plugin:"
@@ -10,6 +10,10 @@ SRC_URI = "git://github.com/ktemkin/surfman.git;branch=opengl_modern;protocol=${
 SRC_URI += " \
     file://discrete_gfx_modprobe.sh \
     file://discrete_gfx.conf \
+"
+FILES_${PN} += " \
+    /etc/modprobe.d/discrete_gfx.conf \
+    /usr/share/xenclient/discrete_gfx_modprobe.sh \
 "
 
 #Add Mesa and its drivers to the list of DRM plugin dependencies.
