@@ -1,0 +1,147 @@
+From e1d603c2a64741b4a9470b11efb170c6b1207580 Mon Sep 17 00:00:00 2001
+From: "Kyle J. Temkin" <temkink@ainfosec.com>
+Date: Wed, 28 Jan 2015 18:35:34 -0500
+Subject: [PATCH 1/2] Add quirk to avoid NUMA penalties on mult-socket systems.
+
+Signed-off-by: Kyle Temkin <temkink@ainfosec.com>
+---
+ part2/stages/Functions/cpuinfo      | 63 +++++++++++++++++++++++++++++++++++++
+ part2/stages/Functions/install-main | 24 ++++++++++++--
+ 2 files changed, 84 insertions(+), 3 deletions(-)
+ create mode 100644 part2/stages/Functions/cpuinfo
+
+diff --git a/part2/stages/Functions/cpuinfo b/part2/stages/Functions/cpuinfo
+new file mode 100644
+index 0000000..077d99e
+--- /dev/null
++++ b/part2/stages/Functions/cpuinfo
+@@ -0,0 +1,63 @@
++#!/usr/bin/bash
++#
++# Copyright (C) 2015 Assured Information Security, Inc.
++# Author: Kyle J. Temkin <temkink@ainfosec.com>
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++#
++
++#
++# Prints the number of CPU cores,.
++#
++get_physical_cpu_cores()
++{
++    xenops physinfo | awk '/nr_cpus/ {print $3}'
++}
++
++#
++# Determines the number of cores per socket.
++#
++get_physical_cores_per_socket()
++{
++    xenops physinfo | awk '/cores_per_socket/ {print $3}'
++}
++
++#
++# Determines the number of cores per socket.
++#
++get_physical_threads_per_core()
++{
++    xenops physinfo | awk '/threads_per_core/ {print $3}'
++}
++
++#
++# Determines the number of cores per socket.
++#
++get_physical_threads_per_socket()
++{
++    local CORES_PER_SOCKET=$(get_physical_cores_per_socket)
++    local THREADS_PER_CORE=$(get_physical_threads_per_core)
++
++    echo $(($CORES_PER_SOCKET * $THREADS_PER_CORE))
++}
++
++#
++# Returns true iff the system has multiple sockets.
++#
++is_multi_socket()
++{
++    ! [[ $(get_physical_cpu_cores) -eq $(get_physical_threads_per_socket) ]]
++    return
++}
+diff --git a/part2/stages/Functions/install-main b/part2/stages/Functions/install-main
+index 3b29894..f3ce99f 100644
+--- a/part2/stages/Functions/install-main
++++ b/part2/stages/Functions/install-main
+@@ -6,17 +6,19 @@
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation; either version 2 of the License, or
+ # (at your option) any later version.
+-# 
++#
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+-# 
++#
+ # You should have received a copy of the GNU General Public License
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ #
+ 
++. ${SCRIPT_DIR}/Functions/cpuinfo
++
+ mk_xc_lvm()
+ {
+     local PARTITION_DEV="$1"
+@@ -321,7 +323,7 @@ lv_in_use()
+ {
+     local DEV="$1"
+ 
+-    local OPEN_COUNT="$(lvdisplay -c ${DEV} | cut -f6 -d:)" 
++    local OPEN_COUNT="$(lvdisplay -c ${DEV} | cut -f6 -d:)"
+ 
+     [ "${OPEN_COUNT:-0}" -gt 0 ]
+ }
+@@ -424,11 +426,27 @@ mount_config()
+ 
+ install_bootloader_from_dom0fs()
+ {
++    local GRUB_CONFIG="${DOM0_MOUNT}/boot/system/grub/grub.cfg"
++
+     do_cmd chroot ${DOM0_MOUNT} \
+            /usr/share/xenclient/install-bootloader "${LANGUAGE}" >&2 || {
+         echo "Error installing the bootloader">&2
+         return 1
+     }
++
++    # Quirk for NUMA systems: if we have a multi-socket system, bind DOM0 to its
++    # first socket (which typically drives the primary display's PCI bus). Xen will
++    # then adjust NUMA memory accordingly.
++    #
++    # This /should/ be replaced with proper toolstack support for setting Node affinity,
++    # but the technology to make Xen guests -- including dom0-- aware of NUMA
++    # (Virtual NUMA support) is still a WIP in upstream Xen, and there's no good way
++    # to detect which node the graphics device belongs to, currently.
++    #
++    if is_multi_socket; then
++      sed -i "/XEN_COMMON_CMD/ s/\"$/ dom0_max_vcpus=$(get_physical_threads_per_socket) dom0_vcpus_pin\"/" ${GRUB_CONFIG} > /dev/null
++    fi
++
+     return 0
+ }
+ 
+-- 
+2.3.6
+

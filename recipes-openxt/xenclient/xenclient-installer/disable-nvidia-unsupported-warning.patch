@@ -1,0 +1,26 @@
+From 41a5036f740e5453f44302f345c5f68f31ec7a9f Mon Sep 17 00:00:00 2001
+From: Kyle Temkin <ktemkin@binghamton.edu>
+Date: Thu, 21 May 2015 00:00:45 -0400
+Subject: [PATCH 2/2] Add NVIDIA as a supported GPU vendor.
+
+Signed-off-by: Kyle Temkin <temkink@ainfosec.com>
+---
+ part1/stages/Check-GPU | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/part1/stages/Check-GPU b/part1/stages/Check-GPU
+index 60470d9..f778df8 100755
+--- a/part1/stages/Check-GPU
++++ b/part1/stages/Check-GPU
+@@ -30,7 +30,7 @@ check_gfx()
+             if grep -q '3....$' $i/class; then
+                 vendor=$(cat $i/vendor)
+                 case $vendor in
+-                    "0x8086"|"0x1002") return 0;;
++                    "0x8086"|"0x1002"|"0x10de") return 0;;
+                 esac
+             fi
+         fi
+-- 
+2.3.6
+
