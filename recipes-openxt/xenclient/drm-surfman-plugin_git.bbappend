@@ -4,7 +4,7 @@ PR .= "0.3"
 FILESEXTRAPATHS_prepend := "${THISDIR}/drm-surfman-plugin:"
 
 #Override the source repository, until the layer is merged.
-SRC_URI = "git://github.com/ktemkin/surfman.git;branch=opengl_modern;protocol=${OPENXT_GIT_PROTOCOL}"
+SRC_URI = "git://github.com/ktemkin/surfman.git;branch=opengl_modern;protocol=git"
 
 #Add our discrete graphics module handers.
 SRC_URI += " \
