@@ -1,5 +1,7 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
+SRC_URI += "file://nouveau-use-xen-wmi.patch"
+
 #Rework the current kernel configuration to include the 
 #Nouveau and Radeon DRM drivers.
 do_configure_prepend() {
@@ -10,4 +12,4 @@ do_configure_prepend() {
   echo "CONFIG_DRM_NOUVEAU=m" >> ${WORKDIR}/defconfig
 }
 
-PR .= ".1"
+PR .= ".3"
