@@ -23,6 +23,36 @@
 #
 
 #
+# Wait for a given device to show up as bound to pciback.
+#
+function wait_for_pciback() {
+
+  #Get the device's (domain):BDF...
+  local BDF=$(basename $1)
+  local timeout=15
+
+  while [ $timeout -gt 0 ]; do
+
+    #Wait one second so the bind can occur...
+    sleep 1
+    timeout=$(expr $timeout - 1)
+
+    #If we've found that the device is bound to pciback, return.
+    if [ -d "/sys/bus/pci/drivers/pciback/$BDF" ]; then
+      return 0
+
+    #Otherwise, warn the user and try again.
+    else
+      echo "Discrete graphics not yet bound to pciback." > /dev/kmsg
+      echo "Waiting up to $timeout more seconds." > /dev/kmsg
+    fi
+
+  done
+
+  return 1
+}
+
+#
 # Attempt to bind a given device to pciback, preventing it from being used in dom0.
 # Accepts either a (Domain)-BDF, or a sysfs PCI device path.
 #
@@ -52,12 +82,29 @@ for device_path in /sys/bus/pci/devices/*; do
     continue
   fi
 
+  #HEURISTIC:
+  #If this is our boot VGA, and it's an Intel, we don't ever
+  #want to load discrete drivers. Cowardly refuse to load.
+  if [ $(cat "$device_path/boot_vga") -eq 1 ]; then
+    if [ $(cat "$device_path/vendor") = "0x8086" ]; then
+      echo "Cowardly refusing to load discrete graphics when an Intel intergated is present." > /dev/kmsg
+      exit 2
+    fi
+  fi
+
   #If this isn't our boot VGA, bind it to pciback.
   if [ $(cat "$device_path/boot_vga") -eq 0 ]; then
     bind_to_pciback $device_path
+
+    #Wait for the device to be bound to pciback.
+    #If it never appears, bail out!
+    wait_for_pciback $device_path || exit 2
+
   fi
 
 done
 
+
 #Finally, load the relevant module.
+echo "Loading discrete graphics driver." > /dev/kmsg
 modprobe --ignore-install $1
