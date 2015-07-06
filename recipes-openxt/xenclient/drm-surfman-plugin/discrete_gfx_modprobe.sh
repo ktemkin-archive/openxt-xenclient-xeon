@@ -22,13 +22,16 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+#Ensure that only one copy of this script is run at a time.
+mkdir /var/lock/discrete_gfx 2> /dev/null || exit 1
+
 #
 # Wait for a given device to show up as bound to pciback.
 #
 function wait_for_pciback() {
 
   #Get the device's (domain):BDF...
-  local BDF=$(basename $1)
+  local BDF=$1
   local timeout=15
 
   while [ $timeout -gt 0 ]; do
@@ -59,7 +62,7 @@ function wait_for_pciback() {
 function bind_to_pciback() {
 
   #Get the device's (domain):BDF...
-  local BDF=$(basename $1)
+  local BDF=$1
 
   #... and use that to bind the device to PCIback.
   echo $BDF > "/sys/bus/pci/drivers/pciback/new_slot"
@@ -68,7 +71,7 @@ function bind_to_pciback() {
 }
 
 #First, ensure that Xen's pciback driver has already been loaded.
-modprobe xen-pciback
+modprobe xen-pciback 2> /dev/null > /dev/null
 
 #
 # Next, we'll need to limit the devices that can bind to to this graphics module,
@@ -76,6 +79,7 @@ modprobe xen-pciback
 # for passthrough.
 #
 for device_path in /sys/bus/pci/devices/*; do
+  BDF=$(basename $device_path)
 
   #If this isn't a VGA device, skip it.
   if [[ $(cat "$device_path/class") != 0x0300* ]]; then
@@ -88,18 +92,26 @@ for device_path in /sys/bus/pci/devices/*; do
   if [ $(cat "$device_path/boot_vga") -eq 1 ]; then
     if [ $(cat "$device_path/vendor") = "0x8086" ]; then
       echo "Cowardly refusing to load discrete graphics when an Intel intergated is present." > /dev/kmsg
+      rmdir /var/lock/discrete_gfx
       exit 2
     fi
   fi
 
-  #If this isn't our boot VGA, bind it to pciback.
+  #If this isn't our boot VGA...
   if [ $(cat "$device_path/boot_vga") -eq 0 ]; then
-    bind_to_pciback $device_path
 
-    #Wait for the device to be bound to pciback.
-    #If it never appears, bail out!
-    wait_for_pciback $device_path || exit 2
+    #... and it's not already bound to pciback...
+    if ! [ -d "/sys/bus/pci/drivers/pciback/$BDF" ]; then
+      echo "Binding graphics card $BDF to pciback..." > /dev/kmsg
 
+      #... bind it to pciback, effectively reserving it for passthrough.
+      bind_to_pciback $BDF
+
+      #Wait for the device to be bound to pciback.
+      #If it never appears, bail out!
+      wait_for_pciback $BDF || (rmdir /var/lock/discrete_gfx; exit 2)
+
+    fi
   fi
 
 done
@@ -108,3 +120,5 @@ done
 #Finally, load the relevant module.
 echo "Loading discrete graphics driver." > /dev/kmsg
 modprobe --ignore-install $1
+
+rmdir /var/lock/discrete_gfx
